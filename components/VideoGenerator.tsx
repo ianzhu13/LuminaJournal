@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { JournalEntry, GenerationStatus } from '../types';
 import { analyzeJournalForVideo, generateCinematicMemory, generateJournalAudio } from '../services/geminiService';
-import { Film, Sparkles, Loader2, AlertCircle, Music, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { Film, Sparkles, Loader2, AlertCircle, Music, Volume2, VolumeX, Play, Pause, CheckCircle2 } from 'lucide-react';
 
 interface VideoGeneratorProps {
   entries: JournalEntry[];
@@ -115,6 +115,58 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ entries }) => {
     }
   };
 
+  const renderProgressStepper = () => {
+    const steps = [
+      { status: GenerationStatus.ANALYZING, label: "Analyzing" },
+      { status: GenerationStatus.GENERATING, label: "Generating" },
+      { status: GenerationStatus.COMPLETED, label: "Ready" },
+    ];
+
+    // Helper to check if step is active or completed
+    const getStepState = (index: number) => {
+        if (status === GenerationStatus.ERROR) return 'error';
+        let activeIndex = -1;
+        if (status === GenerationStatus.ANALYZING) activeIndex = 0;
+        if (status === GenerationStatus.GENERATING) activeIndex = 1;
+        if (status === GenerationStatus.COMPLETED) activeIndex = 2;
+
+        if (index < activeIndex) return 'completed';
+        if (index === activeIndex) return 'active';
+        return 'pending';
+    };
+
+    return (
+      <div className="flex items-center justify-center w-full max-w-md mb-10 mx-auto">
+        {steps.map((step, idx) => {
+            const stepState = getStepState(idx);
+            return (
+                <div key={idx} className="flex items-center w-full last:w-auto">
+                    <div className="flex flex-col items-center relative">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10
+                            ${stepState === 'completed' ? 'bg-brand-500 border-brand-500 text-white' : ''}
+                            ${stepState === 'active' ? 'bg-white border-brand-500 text-brand-500 shadow-lg shadow-brand-200 scale-110' : ''}
+                            ${stepState === 'pending' ? 'bg-white border-slate-200 text-slate-300' : ''}
+                        `}>
+                            {stepState === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="text-sm font-bold">{idx + 1}</span>}
+                        </div>
+                        <span className={`absolute top-12 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors duration-300
+                             ${stepState === 'active' || stepState === 'completed' ? 'text-brand-600' : 'text-slate-300'}
+                        `}>
+                            {step.label}
+                        </span>
+                    </div>
+                    {idx < steps.length - 1 && (
+                        <div className={`flex-1 h-1 mx-2 rounded-full transition-colors duration-500
+                            ${stepState === 'completed' ? 'bg-brand-500' : 'bg-slate-100'}
+                        `} />
+                    )}
+                </div>
+            );
+        })}
+      </div>
+    );
+  };
+
   if (!hasKey) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl shadow-sm">
@@ -178,6 +230,9 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ entries }) => {
 
       {(status === GenerationStatus.ANALYZING || status === GenerationStatus.GENERATING) && (
         <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
+           
+           {renderProgressStepper()}
+
            <Loader2 className="w-12 h-12 text-brand-500 animate-spin mb-4" />
            <h3 className="text-xl font-semibold text-slate-800">
              {status === GenerationStatus.ANALYZING ? "Composing your story..." : "Producing video & audio..."}
@@ -189,7 +244,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ entries }) => {
            </p>
            
            {analysis && (
-             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl text-left">
+             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl text-left animate-in slide-in-from-bottom-4">
                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Visual Direction</p>
                  <p className="text-sm text-slate-700 italic line-clamp-3">"{analysis.prompt}"</p>

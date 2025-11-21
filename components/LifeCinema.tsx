@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { JournalEntry, GenerationStatus } from '../types';
 import { analyzeLifeProfile, generateCinematicMemory, generateJournalAudio } from '../services/geminiService';
-import { Sparkles, Play, Pause, Volume2, VolumeX, User, Music, Film, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, Play, Pause, Volume2, VolumeX, User, Music, Film, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface LifeCinemaProps {
   entries: JournalEntry[];
@@ -83,6 +83,58 @@ const LifeCinema: React.FC<LifeCinemaProps> = ({ entries, onBack }) => {
     }
   };
 
+  const renderProgressStepper = () => {
+    const steps = [
+      { status: GenerationStatus.ANALYZING, label: "Analyzing" },
+      { status: GenerationStatus.GENERATING, label: "Generating" },
+      { status: GenerationStatus.COMPLETED, label: "Cinema Ready" },
+    ];
+
+    // Helper to check if step is active or completed
+    const getStepState = (index: number) => {
+        if (status === GenerationStatus.ERROR) return 'error';
+        let activeIndex = -1;
+        if (status === GenerationStatus.ANALYZING) activeIndex = 0;
+        if (status === GenerationStatus.GENERATING) activeIndex = 1;
+        if (status === GenerationStatus.COMPLETED) activeIndex = 2;
+
+        if (index < activeIndex) return 'completed';
+        if (index === activeIndex) return 'active';
+        return 'pending';
+    };
+
+    return (
+      <div className="flex items-center justify-center w-full max-w-md mb-10 mx-auto">
+        {steps.map((step, idx) => {
+            const stepState = getStepState(idx);
+            return (
+                <div key={idx} className="flex items-center w-full last:w-auto">
+                    <div className="flex flex-col items-center relative">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10
+                            ${stepState === 'completed' ? 'bg-purple-500 border-purple-500 text-white' : ''}
+                            ${stepState === 'active' ? 'bg-slate-900 border-purple-500 text-purple-500 shadow-lg shadow-purple-900 scale-110' : ''}
+                            ${stepState === 'pending' ? 'bg-slate-900 border-slate-700 text-slate-600' : ''}
+                        `}>
+                            {stepState === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="text-sm font-bold">{idx + 1}</span>}
+                        </div>
+                        <span className={`absolute top-12 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors duration-300
+                             ${stepState === 'active' || stepState === 'completed' ? 'text-purple-400' : 'text-slate-600'}
+                        `}>
+                            {step.label}
+                        </span>
+                    </div>
+                    {idx < steps.length - 1 && (
+                        <div className={`flex-1 h-1 mx-2 rounded-full transition-colors duration-500
+                            ${stepState === 'completed' ? 'bg-purple-500' : 'bg-slate-700'}
+                        `} />
+                    )}
+                </div>
+            );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div ref={containerRef} className="min-h-full flex flex-col bg-slate-900 text-slate-100 rounded-2xl overflow-hidden shadow-2xl">
       
@@ -145,19 +197,24 @@ const LifeCinema: React.FC<LifeCinemaProps> = ({ entries, onBack }) => {
         )}
 
         {(status === GenerationStatus.ANALYZING || status === GenerationStatus.GENERATING) && (
-           <div className="text-center z-10">
-             <Loader2 className="w-16 h-16 text-purple-500 animate-spin mx-auto mb-6" />
-             <h3 className="text-2xl font-light text-white mb-2 animate-pulse">
-               {status === GenerationStatus.ANALYZING ? "Reading your story..." : "Composing your anthem..."}
-             </h3>
-             <p className="text-slate-500">
-               {status === GenerationStatus.ANALYZING 
-                 ? "Extracting personality archetypes and emotional patterns."
-                 : "Generating symbolic visuals and spoken word composition."}
-             </p>
+           <div className="text-center z-10 w-full max-w-2xl">
+             
+             {renderProgressStepper()}
+
+             <div className="mt-8">
+                <Loader2 className="w-12 h-12 text-purple-500 animate-spin mx-auto mb-6" />
+                <h3 className="text-2xl font-light text-white mb-2 animate-pulse">
+                  {status === GenerationStatus.ANALYZING ? "Reading your story..." : "Composing your anthem..."}
+                </h3>
+                <p className="text-slate-500">
+                  {status === GenerationStatus.ANALYZING 
+                    ? "Extracting personality archetypes and emotional patterns."
+                    : "Generating symbolic visuals and spoken word composition."}
+                </p>
+             </div>
 
              {profile && (
-               <div className="mt-8 bg-slate-800/50 backdrop-blur border border-slate-700 p-6 rounded-xl max-w-sm mx-auto text-left animate-in slide-in-from-bottom-4">
+               <div className="mt-12 bg-slate-800/50 backdrop-blur border border-slate-700 p-6 rounded-xl max-w-sm mx-auto text-left animate-in slide-in-from-bottom-4">
                  <p className="text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Profile Identified</p>
                  <h4 className="text-xl font-bold text-white mb-1">{profile.archetype}</h4>
                  <div className="flex gap-2 mb-4">
