@@ -1,0 +1,5 @@
+{
+  "name": "Lumina Journal",
+  "description": "A next-generation journaling app that combines text, photos, and AI-generated cinematic memories (MTV mode) powered by Gemini Veo.",
+  "requestFramePermissions": []
+}
